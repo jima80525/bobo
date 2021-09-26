@@ -15,55 +15,56 @@ def write_data(info):
 info = read_data()
 data = [[item["date"], item["author"], item["title"], item["series"]] for item in sorted(info, key=lambda x: x["date"], reverse=True)]
 
-# Todo - make author and series filter drop-downs
-# add labels for drop downs
+# Todo
 # get keyboard shortcuts working
+# Multiple selection in filters?  Probably not
+# add item - new dialog with author and series as drop down and none indicating
+# it needs to be adde
 
 
-authors = {item["author"] for item in sorted(info, key=lambda x: x["author"])}
+full_authors = {item["author"] for item in sorted(info, key=lambda x: x["author"])}
+full_series = {item["series"] for item in sorted(info, key=lambda x: x["series"]) if item["series"]}
+full_data = [[item["date"], item["author"], item["title"], item["series"]] for item in sorted(info, key=lambda x: x["date"], reverse=True)]
 
-# 1- the layout
-# layout = [[sg.Text("Filter by author:"), sg.Listbox(values=authors, size=(20,4), enable_events=True)],
-# layout = [[sg.Listbox(values=list(authors), size=(20,4), enable_events=True)],
-layout = [[sg.Text("Filter by author:"), sg.Listbox(values=list(authors), size=(20,4), key='-AUTHORS-', enable_events=True)],
-          [sg.Table(
-                values=data,
-                headings=["Date Read", "Author", "Title", "Series", ],
-                key="-BOOKTABLE-",
-                # hide_vertical_scroll=True,
-                # row_height=15,
-                # col_widths=100
-          )],
-          [sg.Button('Show'), sg.Button('Exit')]]
+layout = [[sg.Text("Filter by author:"), sg.Listbox(values=list(full_authors), size=(20,4), key='-AUTHORS-', enable_events=True),
+          sg.Text("Filter by series:"), sg.Listbox(values=list(full_series), size=(20,4), key='-SERIES-', enable_events=True),],
+          [sg.Table(values=full_data, headings=["Date Read", "Author", "Title", "Series", ], key="-BOOKTABLE-", enable_events=True)],
+          [sg.Button('Clear Filters'), sg.Button('Exit')]]
 
-# 2 - the window
+
 window = sg.Window('Pattern 2', layout)
 
-# 3 - the event loop
 while True:
     event, values = window.read()
-    print(f"{event}", values)
-    print(values["-AUTHORS-"][0])
-    # print(window["-AUTHORS-"])
+    print(event)
     if event == sg.WIN_CLOSED or event == 'Exit':
         break
-    if event == 'Show' or event == '-AUTHORS-':
+    if event == 'Clear Filters':
+        window["-AUTHORS-"].update(full_authors) # JHA TODO handle multiple selection in both?
+        window["-SERIES-"].update(full_series)
+        window["-BOOKTABLE-"].update(full_data)
+
+    if event in ('-AUTHORS-', '-SERIES-'):
         # Update the "output" text element to be the value of "input" element
-        author = values["-AUTHORS-"][0]
-        # series = values["-SERIES-"]
+        data = full_data
+        author = None
+        series = None
+        if values["-AUTHORS-"]:
+            author = values["-AUTHORS-"][0]
+        if values["-SERIES-"]:
+            series = values["-SERIES-"][0]
         data = [[item["date"], item["author"], item["title"], item["series"]] for item in sorted(info, key=lambda x: x["date"], reverse=True)]
         if author:
             data = [x for x in data if x[1] == author]
-        # if series:
-            # data = [x for x in data if x[3] == series]
+            window["-AUTHORS-"].update([author]) # JHA TODO handle multiple selection in both?
+            new_series = {item["series"] for item in info if item["author"] == author}
+            window["-SERIES-"].update(list(new_series))
+        if series:
+            data = [x for x in data if x[3] == series]
+            window["-SERIES-"].update([series])
+            new_authors = {item["author"] for item in info if item["series"] == series}
+            window["-AUTHORS-"].update(list(new_authors))
 
-        # window['-OUTPUT-'].update(values['-AUTHOR-'])
         window["-BOOKTABLE-"].update(data)
 
-        # In older code you'll find it written using FindElement or Element
-        # window.FindElement('-OUTPUT-').Update(values['-IN-'])
-        # A shortened version of this update can be written without the ".Update"
-        # window['-OUTPUT-'](values['-IN-'])
-
-# 4 - the close
 window.close()
