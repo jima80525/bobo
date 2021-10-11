@@ -8,31 +8,69 @@ def read_data():
     with open(database_file, "r") as fp:
         return json.load(fp)
 
+
 def write_data(info):
     with open(database_file, "w") as fp:
         json.dump(info, fp, indent=2)
 
+def add_book(title, text, authors, series):
+    # authors.insert(0, "New Author")
+    window = sg.Window(title,
+        [[sg.Text(text)],
+        [sg.Text("Title:"), sg.Input(key="-TITLE-")],
+        [sg.CalendarButton("Date Finished", format="%m/%d/%Y", key="-CAL-", enable_events=True),
+        sg.Text("Not Set", key="-DATE-")],
+        [sg.Combo(authors, key='-AUTH-'), sg.Combo(series, key='-SER-')],
+            [sg.OK(key="Ok"), sg.Cancel(key="Cancel")]
+    ], return_keyboard_events=True)
+    title = None
+    author = None
+    while True:
+        event, values = window.read()
+        print(event, values)
+        if event in [sg.WIN_CLOSED, "Cancel", chr(27)]:  # 27 is escape char in ascii
+            window.close()
+            return None, None, None, None
+        if event == "-CAL-":
+            date_text = window["-DATE-"]
+            date_text.update(values["-CAL-"])
+
+        if event == 'Ok':
+            title = values['-TITLE-']
+            cal = window['-DATE-'].get()
+            if cal == "Not Set":
+                cal = ""
+            author = values['-AUTH-']
+            series = values['-SER-']
+            window.close()
+            if title and author:  # must supply title and author
+                return title, cal, author, series
+            return None, None, None, None
+
+
+
+def build_lists(info):
+    authors = list({item["author"] for item in sorted(info, key=lambda x: x["author"])})
+    series = list({item["series"] for item in sorted(info, key=lambda x: x["series"]) if item["series"]})
+    data = [[item["title"], item["author"], item["date"], item["series"]] for item in sorted(info, key=lambda x: x["date"], reverse=True)]
+    return authors, series, data
+
 info = read_data()
-data = [[item["date"], item["author"], item["title"], item["series"]] for item in sorted(info, key=lambda x: x["date"], reverse=True)]
+full_authors, full_series, full_data = build_lists(info)
 
 # Todo
-# get keyboard shortcuts working
-# Multiple selection in filters?  Probably not
-# add item - new dialog with author and series as drop down and none indicating
-# it needs to be adde
+# edit existing record
+# back up file before writing
 
-
-full_authors = {item["author"] for item in sorted(info, key=lambda x: x["author"])}
-full_series = {item["series"] for item in sorted(info, key=lambda x: x["series"]) if item["series"]}
-full_data = [[item["date"], item["author"], item["title"], item["series"]] for item in sorted(info, key=lambda x: x["date"], reverse=True)]
-
-layout = [[sg.Text("Filter by author:"), sg.Listbox(values=list(full_authors), size=(20,4), key='-AUTHORS-', enable_events=True),
-          sg.Text("Filter by series:"), sg.Listbox(values=list(full_series), size=(20,4), key='-SERIES-', enable_events=True),],
-          [sg.Table(values=full_data, headings=["Date Read", "Author", "Title", "Series", ], key="-BOOKTABLE-", enable_events=True)],
-          [sg.Button('Clear Filters'), sg.Button('Exit')]]
-
-
-window = sg.Window('Pattern 2', layout)
+# layout = [[sg.Text("Filter by author:"), sg.Listbox(values=list(full_authors), expand_x=True, expand_y=True, key='-AUTHORS-', enable_events=True),
+        #   sg.Text("Filter by series:"), sg.Listbox(values=list(full_series),  expand_x=True, expand_y=True,key='-SERIES-', enable_events=True),],
+layout = [[sg.Text("Filter by author:"), sg.Listbox(values=list(full_authors), size=(50,10), key='-AUTHORS-', enable_events=True),
+          sg.Text("Filter by series:"), sg.Listbox(values=list(full_series), size=(50,10), key='-SERIES-', enable_events=True),],
+          [sg.Table(values=full_data, headings=["Title", "Author", "Date Read", "Series", ], justification="center", expand_x=True, expand_y=True,key="-BOOKTABLE-", enable_events=True, selected_row_colors="red on yellow", select_mode=sg.TABLE_SELECT_MODE_BROWSE)],
+          [sg.Button('Clear Filters'), sg.Button('Add'), sg.Button('Exit')]]
+window = sg.Window('Book of Books', layout, return_keyboard_events=True, resizable=True)
+window.finalize()
+window.maximize()
 
 while True:
     event, values = window.read()
@@ -66,5 +104,26 @@ while True:
             window["-AUTHORS-"].update(list(new_authors))
 
         window["-BOOKTABLE-"].update(data)
+    if event in ['Add', 'a', 'A']:
+        title, cal, author, series = add_book("Add Titles", "selection please", sorted(full_authors), sorted(full_series))
+        if title and author:
+            info.append({
+                "date": cal,
+                "series": series,
+                "title": title,
+                "author": author,
+            })
+            write_data(info)
+            full_authors, full_series, full_data = build_lists(info)
+            window["-AUTHORS-"].update(full_authors)
+            window["-SERIES-"].update(full_series)
+            window["-BOOKTABLE-"].update(full_data)
+    if event in ['Edit', 'e', 'E']:
+        table = window["-BOOKTABLE-"]
+        if table and table.SelectedRows:
+            print(table.SelectedRows)
+            if table.SelectedRows:
+                print(table.Values[table.SelectedRows[0]])
+
 
 window.close()
