@@ -13,16 +13,28 @@ def write_data(info):
     with open(database_file, "w") as fp:
         json.dump(info, fp, indent=2)
 
-def add_book(title, text, authors, series):
-    # authors.insert(0, "New Author")
-    window = sg.Window(title,
-        [[sg.Text(text)],
+
+def book_dialog(dialog_title, authors, series, book_info=(None, None, None, None)):
+    init_title, init_author, init_date, init_series = book_info
+    authors_combo = sg.Combo(authors, key='-AUTH-')
+    series_combo = sg.Combo(series, key='-SER-')
+    layout = [
         [sg.Text("Title:"), sg.Input(key="-TITLE-")],
-        [sg.CalendarButton("Date Finished", format="%m/%d/%Y", key="-CAL-", enable_events=True),
-        sg.Text("Not Set", key="-DATE-")],
-        [sg.Combo(authors, key='-AUTH-'), sg.Combo(series, key='-SER-')],
-            [sg.OK(key="Ok"), sg.Cancel(key="Cancel")]
-    ], return_keyboard_events=True)
+        [sg.CalendarButton("Date Finished", format="%m/%d/%Y", key="-CAL-", enable_events=True), sg.Text("Not Set", key="-DATE-")],
+        [sg.Text("Author:"), authors_combo],
+        [sg.Text("Series:"), series_combo],
+        [sg.OK(key="Ok"), sg.Cancel(key="Cancel")]
+    ]
+    window = sg.Window(dialog_title, layout=layout, return_keyboard_events=True)
+    window.finalize()  # obligatory to allow updating boxes
+    if init_title:
+        window["-TITLE-"].update(value=init_title)
+    if init_author:
+        window["-AUTH-"].update(value=init_author)
+    if init_date:
+        window["-DATE-"].update(value=init_date)
+    if init_series:
+        window["-SER-"].update(value=init_series)
     title = None
     author = None
     while True:
@@ -48,6 +60,15 @@ def add_book(title, text, authors, series):
             return None, None, None, None
 
 
+def add_book(dialog_title, authors, series):
+    return book_dialog("Add Book", authors, series)
+
+
+def edit_book(authors, full_series, book_info):
+    # title, author, date, series = book_info
+    # return book_dialog("Edit Book", authors, full_series, init_title=title, init_author=author, init_date=date, init_series=series)
+    return book_dialog("Edit Book", authors, full_series, book_info)
+
 
 def build_lists(info):
     authors = list({item["author"] for item in sorted(info, key=lambda x: x["author"])})
@@ -60,10 +81,8 @@ full_authors, full_series, full_data = build_lists(info)
 
 # Todo
 # edit existing record
-# back up file before writing
+# back up file before writintable g
 
-# layout = [[sg.Text("Filter by author:"), sg.Listbox(values=list(full_authors), expand_x=True, expand_y=True, key='-AUTHORS-', enable_events=True),
-        #   sg.Text("Filter by series:"), sg.Listbox(values=list(full_series),  expand_x=True, expand_y=True,key='-SERIES-', enable_events=True),],
 layout = [[sg.Text("Filter by author:"), sg.Listbox(values=list(full_authors), size=(50,10), key='-AUTHORS-', enable_events=True),
           sg.Text("Filter by series:"), sg.Listbox(values=list(full_series), size=(50,10), key='-SERIES-', enable_events=True),],
           [sg.Table(values=full_data, headings=["Title", "Author", "Date Read", "Series", ], justification="center", expand_x=True, expand_y=True,key="-BOOKTABLE-", enable_events=True, selected_row_colors="red on yellow", select_mode=sg.TABLE_SELECT_MODE_BROWSE)],
@@ -71,6 +90,9 @@ layout = [[sg.Text("Filter by author:"), sg.Listbox(values=list(full_authors), s
 window = sg.Window('Book of Books', layout, return_keyboard_events=True, resizable=True)
 window.finalize()
 window.maximize()
+table = window["-BOOKTABLE-"]
+table.update(select_rows=[0])
+
 
 while True:
     event, values = window.read()
@@ -105,7 +127,7 @@ while True:
 
         window["-BOOKTABLE-"].update(data)
     if event in ['Add', 'a', 'A']:
-        title, cal, author, series = add_book("Add Titles", "selection please", sorted(full_authors), sorted(full_series))
+        title, cal, author, series = add_book("Add New Book", sorted(full_authors), sorted(full_series))
         if title and author:
             info.append({
                 "date": cal,
@@ -119,11 +141,9 @@ while True:
             window["-SERIES-"].update(full_series)
             window["-BOOKTABLE-"].update(full_data)
     if event in ['Edit', 'e', 'E']:
-        table = window["-BOOKTABLE-"]
         if table and table.SelectedRows:
-            print(table.SelectedRows)
             if table.SelectedRows:
-                print(table.Values[table.SelectedRows[0]])
+                edit_book(full_authors, full_series, table.Values[table.SelectedRows[0]])
 
 
 window.close()
