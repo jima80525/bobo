@@ -106,6 +106,7 @@ def update_info(info, old_book, new_book):
 
 
 def update_info_and_ui(window, info, old_book, new_book):
+    global full_authors, full_series, full_data
     info = update_info(info, old_book, new_book)
     write_data(info)
     full_authors, full_series, full_data = build_lists(info)
