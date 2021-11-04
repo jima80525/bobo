@@ -30,26 +30,41 @@ class BookList:
     database_file = pathlib.Path("book.json")
 
     def __init__(self):
-        self.full_info = self.read_data()
         self.sort_key = "date"
         self.sort_reverse = True
-        self.full_authors = sorted(list({item["author"] for item in sorted(self.full_info, key=lambda x: x["author"])}))
-        self.full_series = sorted(list(
-            {item["series"] for item in sorted(self.full_info, key=lambda x: x["series"]) if item["series"]}
-        ))
-        self.full_data = [
-            [item["title"], item["author"], item["series"], item["date"]]
-            for item in sorted(self.full_info, key=lambda x: x[SORT_KEY], reverse=SORT_REVERSE)
-        ]
+        self.full_info = self.read_data()
         self.update_data(True)
 
+    def update_data(self, refresh):
+        if refresh:
+            self.full_authors = sorted(list({item["author"] for item in sorted(self.full_info, key=lambda x: x["author"])}))
+            self.full_series = sorted(list(
+                {item["series"] for item in sorted(self.full_info, key=lambda x: x["series"]) if item["series"]}
+            ))
+            self.authors = self.full_authors
+            self.series = self.full_series
+        self.data = []
+        for item in sorted(self.full_info, key=lambda x: x[SORT_KEY], reverse=SORT_REVERSE):
+            author_match = not self.authors or item["author"] in self.authors
+            series_match = not self.series or not item["series"] or item["series"] in self.series
+            print(f"{item['series']} list {self.series} {series_match}")
+            if author_match and series_match:
+                self.data.append(
+                    [item["title"], item["author"], item["series"], item["date"]]
+                )
+
     def read_data(self):
-        if not self.database_file.is_file():
+        data = None
+        if self.database_file.is_file():
+            with open(self.database_file, "r") as fp:
+                data = json.load(fp)
+
+        if not data or len(data) == 0:
             new_book = book_dialog("Add Book", [], [])
             if not new_book:
                 print("No book information present")
                 sys.exit()
-            info = [
+            data = [
                 {
                     "title": new_book.title,
                     "author": new_book.author,
@@ -57,9 +72,11 @@ class BookList:
                     "series": new_book.series,
                 }
             ]
-            write_data(info)
-        with open(self.database_file, "r") as fp:
-            return json.load(fp)
+            self.full_info = data
+            self.write_data()
+
+        return data
+
 
     def write_data(self):
         if self.database_file.is_file():
@@ -96,24 +113,16 @@ class BookList:
                 item["date"] = new_book.date
                 item["series"] = new_book.series
                 self.write_data()
-                self.update_data(False)
+                self.update_data(True)
 
-    def update_data(self, refresh):
-        if refresh:
-            self.authors = self.full_authors
-            self.series = self.full_series
-        self.data = []
-        print()
-        for item in sorted(self.full_info, key=lambda x: x[SORT_KEY], reverse=SORT_REVERSE):
-            author_match = not self.authors or item["author"] in self.authors
-            print(f"{item['author']} list {self.authors} {author_match}")
-            # JHA BUG is series is set, this still passes books with no series
-            series_match = not self.series or not item["series"] or item["series"] in self.series
-            print(f"{item['series']} list {self.series} {series_match}")
-            if author_match and series_match:
-                self.data.append(
-                    [item["title"], item["author"], item["series"], item["date"]]
-                )
+    def delete_book(self, book):
+        for index, item in enumerate(self.full_info):
+            test_book = Book(item["title"], item["author"], item["series"], item["date"])
+            if test_book == book:
+                print("Deleting: ", book, type(self.full_info))
+                del self.full_info[index]
+                self.write_data()
+                self.update_data(True)
 
     def author_filter(self, author):
         self.authors = [author]
@@ -129,6 +138,10 @@ class BookList:
         self.authors = self.full_authors
         self.series = self.full_series
         self.update_data(True)
+
+def delete_dialog(book):
+    result = sg.popup_yes_no(f"Delete {book.title} by {book.author}?")
+    return result == "Yes"
 
 def book_dialog(dialog_title, authors, series, book=None):
     authors_combo = sg.Combo(authors, key="-AUTH-", expand_x=True)
@@ -178,7 +191,7 @@ def book_dialog(dialog_title, authors, series, book=None):
             return None
 
 
-def update_info_and_ui(window, books):
+def update_ui(window, books):
     window["-AUTHORS-"].update(books.authors)
     window["-SERIES-"].update(books.series)
     window["-BOOKTABLE-"].update(books.data)
@@ -231,7 +244,7 @@ while True:
         break
     elif event == 'Clear Filters':
         books.clear_filters()
-        update_info_and_ui(window, books)
+        update_ui(window, books)
     elif event == '-BOOKTABLE-Click':
         e = table.user_bind_event
         region = table.Widget.identify('region', e.x, e.y)
@@ -240,18 +253,18 @@ while True:
             column = int(table.Widget.identify_column(e.x)[1:]) - 1
             SORT_KEY = sort_indices[column]
             SORT_REVERSE = not SORT_REVERSE
-            update_info_and_ui(window, books)
+            update_ui(window, books)
     elif event == '-AUTHORS-':
         books.author_filter(values["-AUTHORS-"][0])
-        update_info_and_ui(window, books)
+        update_ui(window, books)
     elif event == '-SERIES-':
         books.series_filter(values["-SERIES-"][0])
-        update_info_and_ui(window, books)
+        update_ui(window, books)
     elif event in ["Add", "a", "A"]:
         new_book = book_dialog("Add Book", books.full_authors, books.full_series)
         if new_book is not None:
             books.add_book(new_book)
-            update_info_and_ui(window, books)
+            update_ui(window, books)
     elif event in ["Edit", "e", "E"]:
         if table and table.SelectedRows:
             if table.SelectedRows:
@@ -259,6 +272,13 @@ while True:
                 new_book = book_dialog("Edit Book", books.full_authors, books.full_series, book)
                 if new_book is not None:
                     books.edit_book(book, new_book)
-                    update_info_and_ui(window, books)
+                    update_ui(window, books)
+    elif event in ["Delete", "d", "D"]:
+        if table and table.SelectedRows:
+            if table.SelectedRows:
+                book = Book(*table.Values[table.SelectedRows[0]])
+                if delete_dialog(book):
+                    books.delete_book(book)
+                    update_ui(window, books)
 
 window.close()
