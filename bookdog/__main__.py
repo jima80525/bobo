@@ -37,32 +37,52 @@ class BookList:
 
     def update_data(self, refresh):
         if refresh:
-            self.full_authors = sorted(list({item["author"] for item in sorted(self.full_info, key=lambda x: x["author"])}))
-            self.full_series = sorted(list(
-                {item["series"] for item in sorted(self.full_info, key=lambda x: x["series"]) if item["series"]}
-            ))
+            self.full_authors = sorted(
+                list(
+                    {
+                        item["author"]
+                        for item in sorted(self.full_info, key=lambda x: x["author"])
+                    }
+                )
+            )
+            self.full_series = sorted(
+                list(
+                    {
+                        item["series"]
+                        for item in sorted(self.full_info, key=lambda x: x["series"])
+                        if item["series"]
+                    }
+                )
+            )
             self.author = None
             self.series = None
         self.data = []
-        for item in sorted(self.full_info, key=lambda x: x[SORT_KEY], reverse=SORT_REVERSE):
+        for item in sorted(
+            self.full_info, key=lambda x: x[SORT_KEY], reverse=SORT_REVERSE
+        ):
             author_match = not self.author or item["author"] == self.author
             series_match = not self.series or item["series"] == self.series
             if author_match and series_match:
                 self.data.append(
-                    [item["title"], item["author"], item["series"], item["date"]]
+                    [
+                        item["title"],
+                        item["author"],
+                        item["series"],
+                        item["date"],
+                    ]
                 )
 
     def get_filtered_list(self, opposite_key, key, filter, default):
         if not filter:
             return default
-        return list({
-            item[opposite_key]
-            for item in self.full_info
-            if item[key] == filter
-        })
+        return list(
+            {item[opposite_key] for item in self.full_info if item[key] == filter}
+        )
 
     def get_filtered_authors(self):
-        return self.get_filtered_list("author", "series", self.series, self.full_authors)
+        return self.get_filtered_list(
+            "author", "series", self.series, self.full_authors
+        )
 
     def get_filtered_series(self):
         return self.get_filtered_list("series", "author", self.author, self.full_series)
@@ -91,7 +111,6 @@ class BookList:
 
         return data
 
-
     def write_data(self):
         if self.database_file.is_file():
             backup_dir = pathlib.Path("BACKUP")
@@ -118,7 +137,9 @@ class BookList:
 
     def edit_book(self, old_book, new_book):
         for item in self.full_info:
-            test_book = Book(item["title"], item["author"], item["series"], item["date"])
+            test_book = Book(
+                item["title"], item["author"], item["series"], item["date"]
+            )
             if test_book == old_book:
                 item["title"] = new_book.title
                 item["author"] = new_book.author
@@ -129,7 +150,9 @@ class BookList:
 
     def delete_book(self, book):
         for index, item in enumerate(self.full_info):
-            test_book = Book(item["title"], item["author"], item["series"], item["date"])
+            test_book = Book(
+                item["title"], item["author"], item["series"], item["date"]
+            )
             if test_book == book:
                 del self.full_info[index]
                 self.write_data()
@@ -148,9 +171,11 @@ class BookList:
         self.series = None
         self.update_data(True)
 
+
 def delete_dialog(book):
     result = sg.popup_yes_no(f"Delete {book.title} by {book.author}?")
     return result == "Yes"
+
 
 def filter_dialog(title, items):
     if len(items) == 0:
@@ -161,7 +186,7 @@ def filter_dialog(title, items):
         [
             sg.Listbox(
                 values=items,
-                default_values=items[0:1],
+                default_values=items[:1],
                 select_mode=sg.LISTBOX_SELECT_MODE_SINGLE,
                 key="-LIST-",
                 enable_events=True,
@@ -171,6 +196,7 @@ def filter_dialog(title, items):
         ],
         [sg.OK(key="Ok"), sg.Cancel(key="Cancel")],
     ]
+
     window = sg.Window(title, layout=layout, return_keyboard_events=True)
     listbox = window["-LIST-"]
     filter = window["-FILTER-"]
@@ -198,7 +224,12 @@ def book_dialog(dialog_title, authors, series, book=None):
     layout = [
         [sg.Text("Title:"), sg.Input(key="-TITLE-")],
         [
-            sg.CalendarButton("Date Finished", format="%Y/%m/%d", key="-CAL-", enable_events=True),
+            sg.CalendarButton(
+                "Date Finished",
+                format="%Y/%m/%d",
+                key="-CAL-",
+                enable_events=True,
+            ),
             sg.Text("Not Set", key="-DATE-"),
         ],
         [sg.Text("Author:"), authors_combo],
@@ -250,90 +281,102 @@ def update_ui(window, books):
         table.update(select_rows=[0])
 
 
-books = BookList()
+def main():
+    books = BookList()
 
-layout = [
-    [
-        sg.Button("Author Filter:"), sg.Text("None", key="-AUTHOR-FILTER-", size=20),
-        sg.Button("Series Filter:"), sg.Text("None", key="-SERIES-FILTER-", size=20),
-    ],
-    [
-        sg.Table(
-            values=books.data,
-            headings=[
-                "Title",
-                "Author",
-                "Series",
-                "Date Read",
-            ],
-            justification="center",
-            expand_x=True,
-            expand_y=True,
-            key="-BOOKTABLE-",
-            enable_events=True,
-            change_submits=True,
-            selected_row_colors="red on yellow",
-            select_mode=sg.TABLE_SELECT_MODE_BROWSE,
-        )
-    ],
-    [sg.Button("Clear Filters"), sg.Button("Add"), sg.Button("Exit")],
-]
-window = sg.Window("Book of Books", layout, return_keyboard_events=True, resizable=True)
-window.finalize()
-table = window["-BOOKTABLE-"]
-table.block_focus(False)
-table.update(select_rows=[0])
-table.bind("<Button-1>", "Click")
+    layout = [
+        [
+            sg.Button("Author Filter:"),
+            sg.Text("None", key="-AUTHOR-FILTER-", size=20),
+            sg.Button("Series Filter:"),
+            sg.Text("None", key="-SERIES-FILTER-", size=20),
+        ],
+        [
+            sg.Table(
+                values=books.data,
+                headings=[
+                    "Title",
+                    "Author",
+                    "Series",
+                    "Date Read",
+                ],
+                justification="center",
+                expand_x=True,
+                expand_y=True,
+                key="-BOOKTABLE-",
+                enable_events=True,
+                change_submits=True,
+                selected_row_colors="red on yellow",
+                select_mode=sg.TABLE_SELECT_MODE_BROWSE,
+            )
+        ],
+        [sg.Button("Clear Filters"), sg.Button("Add"), sg.Button("Exit")],
+    ]
+    window = sg.Window(
+        "Book of Books", layout, return_keyboard_events=True, resizable=True
+    )
+    window.finalize()
+    table = window["-BOOKTABLE-"]
+    table.block_focus(False)
+    table.update(select_rows=[0])
+    table.bind("<Button-1>", "Click")
 
-while True:
-    event, values = window.read()
-    # For some reason, keyboard events are coming in the form of "a:38" or "b:56"
-    # Split out the keyboard code
-    if event and ":" in event:
-        event = event.split(":")[0]
-    # print(event, values)
-    if event in [sg.WIN_CLOSED, "Exit", ESC]:
-        break
-    elif event == 'Clear Filters':
-        books.clear_filters()
-    elif event == '-BOOKTABLE-Click':
-        e = table.user_bind_event
-        region = table.Widget.identify('region', e.x, e.y)
-        if region == 'heading':
-            sort_indices = [ "title", "author", "series", "date", ] # JHA TODO probably should find a way to only encode this one place
-            column = int(table.Widget.identify_column(e.x)[1:]) - 1
-            SORT_KEY = sort_indices[column]
-            SORT_REVERSE = not SORT_REVERSE
-    elif event == '-AUTHORS-':
-        books.author_filter(values["-AUTHORS-"][0])
-    elif event == '-SERIES-':
-        books.series_filter(values["-SERIES-"][0])
-    elif event in ["Add", "a", "A"]:
-        new_book = book_dialog("Add Book", books.full_authors, books.full_series)
-        if new_book is not None:
-            books.add_book(new_book)
-    elif event in ["Edit", "e", "E"]:
-        if table and table.SelectedRows:
-            book = Book(*table.Values[table.SelectedRows[0]])
-            new_book = book_dialog("Edit Book", books.full_authors, books.full_series, book)
+    while True:
+        event, values = window.read()
+        # For some reason, keyboard events are coming in the form of "a:38" or "b:56"
+        # Split out the keyboard code
+        if event and ":" in event:
+            event = event.split(":")[0]
+        # print(event, values)
+        if event in [sg.WIN_CLOSED, "Exit", ESC]:
+            break
+        elif event == "Clear Filters":
+            books.clear_filters()
+        elif event == "-BOOKTABLE-Click":
+            e = table.user_bind_event
+            region = table.Widget.identify("region", e.x, e.y)
+            if region == "heading":
+                sort_indices = [
+                    "title",
+                    "author",
+                    "series",
+                    "date",
+                ]  # JHA TODO probably should find a way to only encode this one place
+                column = int(table.Widget.identify_column(e.x)[1:]) - 1
+                SORT_KEY = sort_indices[column]
+                SORT_REVERSE = not SORT_REVERSE
+        elif event == "-AUTHORS-":
+            books.author_filter(values["-AUTHORS-"][0])
+        elif event == "-SERIES-":
+            books.series_filter(values["-SERIES-"][0])
+        elif event in ["Add", "a", "A"]:
+            new_book = book_dialog("Add Book", books.full_authors, books.full_series)
             if new_book is not None:
-                books.edit_book(book, new_book)
-    elif event in ["Delete", "d", "D"]:
-        if table and table.SelectedRows:
-            book = Book(*table.Values[table.SelectedRows[0]])
-            if delete_dialog(book):
-                books.delete_book(book)
-    elif event == "Author Filter":
-        authors = books.get_filtered_authors()
-        val = filter_dialog("authors", authors)
-        if val and len(val) != 0:
-            books.author_filter(val)
-    elif event == "Series Filter":
-        series = books.get_filtered_series()
-        val = filter_dialog("series", series)
-        if val and len(val) != 0:
-            books.series_filter(val)
-    if event != "-BOOKTABLE-":
-        update_ui(window, books)
+                books.add_book(new_book)
+        elif event in ["Edit", "e", "E"]:
+            if table and table.SelectedRows:
+                book = Book(*table.Values[table.SelectedRows[0]])
+                new_book = book_dialog(
+                    "Edit Book", books.full_authors, books.full_series, book
+                )
+                if new_book is not None:
+                    books.edit_book(book, new_book)
+        elif event in ["Delete", "d", "D"]:
+            if table and table.SelectedRows:
+                book = Book(*table.Values[table.SelectedRows[0]])
+                if delete_dialog(book):
+                    books.delete_book(book)
+        elif event == "Author Filter":
+            authors = books.get_filtered_authors()
+            val = filter_dialog("authors", authors)
+            if val and len(val) != 0:
+                books.author_filter(val)
+        elif event == "Series Filter":
+            series = books.get_filtered_series()
+            val = filter_dialog("series", series)
+            if val and len(val) != 0:
+                books.series_filter(val)
+        if event != "-BOOKTABLE-":
+            update_ui(window, books)
 
-window.close()
+    window.close()
