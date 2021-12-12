@@ -106,5 +106,3 @@ def test_release(c):
     """
     status("Uploading the package to TEST PyPI via Twine…")
     run("twine upload --repository-url https://test.pypi.org/legacy/ dist/*")
-
-pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple bookdog
