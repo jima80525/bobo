@@ -14,8 +14,6 @@ sg.theme("Dark Amber")
 
 RETURN = chr(13)  # 13 is return char in ascii
 ESC = chr(27)  # 27 is escape char in ascii
-SORT_KEY = "date"
-SORT_REVERSE = True
 
 
 @dataclasses.dataclass
@@ -34,6 +32,11 @@ class BookList:
         self.sort_reverse = True
         self.full_info = self.read_data()
         self.update_data(True)
+
+    def update_sort(self, key):
+        if self.sort_key == key:
+            self.sort_reverse = not self.sort_reverse
+        self.sort_key = key
 
     def update_data(self, refresh):
         if refresh:
@@ -58,7 +61,7 @@ class BookList:
             self.series = None
         self.data = []
         for item in sorted(
-            self.full_info, key=lambda x: x[SORT_KEY], reverse=SORT_REVERSE
+            self.full_info, key=lambda x: x[self.sort_key], reverse=self.sort_reverse
         ):
             author_match = not self.author or item["author"] == self.author
             series_match = not self.series or item["series"] == self.series
@@ -273,6 +276,7 @@ def book_dialog(dialog_title, authors, series, book=None):
 
 
 def update_ui(window, books):
+    books.update_data(False)
     window["-AUTHOR-FILTER-"].update(books.author or "None")
     window["-SERIES-FILTER-"].update(books.series or "None")
     table = window["-BOOKTABLE-"]
@@ -332,6 +336,7 @@ def main():
             break
         elif event == "Clear Filters":
             books.clear_filters()
+            update_ui(window, books)
         elif event == "-BOOKTABLE-Click":
             e = table.user_bind_event
             region = table.Widget.identify("region", e.x, e.y)
@@ -343,16 +348,19 @@ def main():
                     "date",
                 ]  # JHA TODO probably should find a way to only encode this one place
                 column = int(table.Widget.identify_column(e.x)[1:]) - 1
-                SORT_KEY = sort_indices[column]
-                SORT_REVERSE = not SORT_REVERSE
+                books.update_sort(sort_indices[column])
+                update_ui(window, books)
         elif event == "-AUTHORS-":
             books.author_filter(values["-AUTHORS-"][0])
+            update_ui(window, books)
         elif event == "-SERIES-":
             books.series_filter(values["-SERIES-"][0])
+            update_ui(window, books)
         elif event in ["Add", "a", "A"]:
             new_book = book_dialog("Add Book", books.full_authors, books.full_series)
             if new_book is not None:
                 books.add_book(new_book)
+                update_ui(window, books)
         elif event in ["Edit", "e", "E"]:
             if table and table.SelectedRows:
                 book = Book(*table.Values[table.SelectedRows[0]])
@@ -361,22 +369,27 @@ def main():
                 )
                 if new_book is not None:
                     books.edit_book(book, new_book)
+                    update_ui(window, books)
         elif event in ["Delete", "d", "D"]:
             if table and table.SelectedRows:
                 book = Book(*table.Values[table.SelectedRows[0]])
                 if delete_dialog(book):
                     books.delete_book(book)
+                    update_ui(window, books)
         elif event == "Author Filter":
             authors = books.get_filtered_authors()
             val = filter_dialog("authors", authors)
             if val and len(val) != 0:
                 books.author_filter(val)
+                update_ui(window, books)
         elif event == "Series Filter":
             series = books.get_filtered_series()
             val = filter_dialog("series", series)
             if val and len(val) != 0:
                 books.series_filter(val)
-        if event != "-BOOKTABLE-":
-            update_ui(window, books)
-
+                update_ui(window, books)
     window.close()
+
+
+if __name__ == "__main__":
+    main()
