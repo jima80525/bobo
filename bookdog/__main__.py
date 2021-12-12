@@ -286,7 +286,6 @@ def update_ui(window, books):
 
 
 def main():
-    print("Test version aaaa")
     books = BookList()
 
     layout = [
