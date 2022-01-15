@@ -9,9 +9,6 @@ import time
 
 sg.theme("Dark Amber")
 
-# TODO
-# * add way to search for author or series in upper boxes - big lists is unwieldy
-
 RETURN = chr(13)  # 13 is return char in ascii
 ESC = chr(27)  # 27 is escape char in ascii
 
@@ -22,6 +19,7 @@ class Book:
     author: str
     series: str
     date: str
+    audiobook: bool
 
 
 class BookList:
@@ -31,7 +29,11 @@ class BookList:
         self.sort_key = "date"
         self.sort_reverse = True
         self.full_info = self.read_data()
+        self.hide_audiobooks = False
         self.update_data(True)
+
+    def invert_audio_flag(self):
+        self.hide_audiobooks = not self.hide_audiobooks
 
     def update_sort(self, key):
         if self.sort_key == key:
@@ -63,6 +65,8 @@ class BookList:
         for item in sorted(
             self.full_info, key=lambda x: x[self.sort_key], reverse=self.sort_reverse
         ):
+            if self.hide_audiobooks and item["audiobook"]:
+                continue
             author_match = not self.author or item["author"] == self.author
             series_match = not self.series or item["series"] == self.series
             if author_match and series_match:
@@ -72,6 +76,7 @@ class BookList:
                         item["author"],
                         item["series"],
                         item["date"],
+                        item["audiobook"],
                     ]
                 )
 
@@ -107,11 +112,16 @@ class BookList:
                     "author": new_book.author,
                     "date": new_book.date,
                     "series": new_book.series,
+                    "audiobook": new_book.audiobook
                 }
             ]
             self.full_info = data
             self.write_data()
 
+        # Special conversion for pre-audiobook database files
+        for book in data:
+            if "audiobook" not in book:
+                book["audiobook"] = False
         return data
 
     def write_data(self):
@@ -133,6 +143,7 @@ class BookList:
                     "author": new_book.author,
                     "date": new_book.date,
                     "series": new_book.series,
+                    "audiobook": new_book.audiobook
                 }
             )
             self.write_data()
@@ -141,20 +152,21 @@ class BookList:
     def edit_book(self, old_book, new_book):
         for item in self.full_info:
             test_book = Book(
-                item["title"], item["author"], item["series"], item["date"]
+                item["title"], item["author"], item["series"], item["date"], item["audiobook"]
             )
             if test_book == old_book:
                 item["title"] = new_book.title
                 item["author"] = new_book.author
                 item["date"] = new_book.date
                 item["series"] = new_book.series
+                item["audiobook"] = new_book.audiobook
                 self.write_data()
                 self.update_data(True)
 
     def delete_book(self, book):
         for index, item in enumerate(self.full_info):
             test_book = Book(
-                item["title"], item["author"], item["series"], item["date"]
+                item["title"], item["author"], item["series"], item["date"], item["audiobook"]
             )
             if test_book == book:
                 del self.full_info[index]
@@ -222,8 +234,10 @@ def filter_dialog(title, items):
 
 
 def book_dialog(dialog_title, authors, series, book=None):
+    # sourcery skip: extract-method
     authors_combo = sg.Combo(authors, key="-AUTH-", expand_x=True)
     series_combo = sg.Combo(series, key="-SER-", expand_x=True)
+    is_audio = book.audiobook if book else False
     layout = [
         [sg.Text("Title:"), sg.Input(key="-TITLE-")],
         [
@@ -237,6 +251,7 @@ def book_dialog(dialog_title, authors, series, book=None):
         ],
         [sg.Text("Author:"), authors_combo],
         [sg.Text("Series:"), series_combo],
+        [sg.Text("Audiobook:"), sg.Checkbox("", default=is_audio, key="-AUDIO-")],
         [sg.OK(key="Ok"), sg.Cancel(key="Cancel")],
     ]
     window = sg.Window(dialog_title, layout=layout, return_keyboard_events=True)
@@ -264,13 +279,14 @@ def book_dialog(dialog_title, authors, series, book=None):
         if event in ["Ok", RETURN]:
             title = values["-TITLE-"]
             author = values["-AUTH-"]
+            audio = values["-AUDIO-"]
             if title and author:  # must supply title and author
                 cal = window["-DATE-"].get()
                 if cal == "Not Set":
                     cal = ""
                 series = values["-SER-"]
                 window.close()
-                return Book(title, author, series, cal)
+                return Book(title, author, series, cal, audio)
             window.close()
             return None
 
@@ -294,6 +310,7 @@ def main():
             sg.Text("None", key="-AUTHOR-FILTER-", size=20),
             sg.Button("Series Filter:"),
             sg.Text("None", key="-SERIES-FILTER-", size=20),
+            sg.Checkbox("Hide Audiobooks", enable_events=True, key="-AUDIO-"),
         ],
         [
             sg.Table(
@@ -303,6 +320,7 @@ def main():
                     "Author",
                     "Series",
                     "Date Read",
+                    "Audiobook",
                 ],
                 justification="center",
                 expand_x=True,
@@ -314,7 +332,7 @@ def main():
                 select_mode=sg.TABLE_SELECT_MODE_BROWSE,
             )
         ],
-        [sg.Button("Clear Filters"), sg.Button("Add"), sg.Button("Exit")],
+        [sg.Button("Clear Filters"), sg.Button("Add"), sg.Button("Edit"), sg.Button("Exit")],
     ]
     window = sg.Window(
         "Book of Books", layout, return_keyboard_events=True, resizable=True
@@ -337,6 +355,9 @@ def main():
         elif event == "Clear Filters":
             books.clear_filters()
             update_ui(window, books)
+        elif event == "-AUDIO-":
+            books.invert_audio_flag()
+            update_ui(window, books)
         elif event == "-BOOKTABLE-Click":
             e = table.user_bind_event
             region = table.Widget.identify("region", e.x, e.y)
@@ -346,6 +367,7 @@ def main():
                     "author",
                     "series",
                     "date",
+                    "audiobook",
                 ]  # JHA TODO probably should find a way to only encode this one place
                 column = int(table.Widget.identify_column(e.x)[1:]) - 1
                 books.update_sort(sort_indices[column])
