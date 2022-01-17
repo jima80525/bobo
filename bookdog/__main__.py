@@ -21,6 +21,34 @@ class Book:
     date: str
     audiobook: bool
 
+    def equalsDict(self, d):
+        return (
+            d["title"] == self.title
+            and d["author"] == self.author
+            and d["date"] == self.date
+            and d["series"] == self.series
+            and d["audiobook"] == self.audiobook
+        )
+
+    def toDict(self):
+        return {
+            "title": self.title,
+            "author": self.author,
+            "date": self.date,
+            "series": self.series,
+            "audiobook": self.audiobook,
+        }
+
+    @staticmethod
+    def getHeadings():
+        return [
+            "Title",
+            "Author",
+            "Date",
+            "Series",
+            "Audiobook",
+        ]
+
 
 class BookList:
     database_file = pathlib.Path("book.json")
@@ -36,6 +64,7 @@ class BookList:
         self.hide_audiobooks = not self.hide_audiobooks
 
     def update_sort(self, key):
+        key = key.lower()
         if self.sort_key == key:
             self.sort_reverse = not self.sort_reverse
         self.sort_key = key
@@ -70,12 +99,15 @@ class BookList:
             author_match = not self.author or item["author"] == self.author
             series_match = not self.series or item["series"] == self.series
             if author_match and series_match:
+                # NOTE: it's tempting to just use items.values here, but that
+                # is dependent on the order that the dict was created. If a
+                # user hand-edits the json, the ordering may get messed up
                 self.data.append(
                     [
                         item["title"],
                         item["author"],
-                        item["series"],
                         item["date"],
+                        item["series"],
                         item["audiobook"],
                     ]
                 )
@@ -83,6 +115,7 @@ class BookList:
     def get_filtered_list(self, opposite_key, key, filter, default):
         if not filter:
             return default
+        # need set comprehension here to eliminate dups
         return list(
             {item[opposite_key] for item in self.full_info if item[key] == filter}
         )
@@ -106,15 +139,7 @@ class BookList:
             if not new_book:
                 print("No book information present")
                 sys.exit()
-            data = [
-                {
-                    "title": new_book.title,
-                    "author": new_book.author,
-                    "date": new_book.date,
-                    "series": new_book.series,
-                    "audiobook": new_book.audiobook
-                }
-            ]
+            data = [new_book.toDict()]
             self.full_info = data
             self.write_data()
 
@@ -137,38 +162,21 @@ class BookList:
 
     def add_book(self, new_book):
         if new_book.title and new_book.author:
-            self.full_info.append(
-                {
-                    "title": new_book.title,
-                    "author": new_book.author,
-                    "date": new_book.date,
-                    "series": new_book.series,
-                    "audiobook": new_book.audiobook
-                }
-            )
+            self.full_info.append(new_book.toDict())
             self.write_data()
             self.update_data(True)
 
     def edit_book(self, old_book, new_book):
-        for item in self.full_info:
-            test_book = Book(
-                item["title"], item["author"], item["series"], item["date"], item["audiobook"]
-            )
-            if test_book == old_book:
-                item["title"] = new_book.title
-                item["author"] = new_book.author
-                item["date"] = new_book.date
-                item["series"] = new_book.series
-                item["audiobook"] = new_book.audiobook
+        for index, item in enumerate(self.full_info):
+            if old_book.equalsDict(item):
+                self.full_info[index] = new_book.toDict()
                 self.write_data()
                 self.update_data(True)
+                return
 
     def delete_book(self, book):
         for index, item in enumerate(self.full_info):
-            test_book = Book(
-                item["title"], item["author"], item["series"], item["date"], item["audiobook"]
-            )
-            if test_book == book:
+            if book.equalsDict(item):
                 del self.full_info[index]
                 self.write_data()
                 self.update_data(True)
@@ -315,13 +323,7 @@ def main():
         [
             sg.Table(
                 values=books.data,
-                headings=[
-                    "Title",
-                    "Author",
-                    "Series",
-                    "Date Read",
-                    "Audiobook",
-                ],
+                headings=Book.getHeadings(),
                 justification="center",
                 expand_x=True,
                 expand_y=True,
@@ -332,7 +334,12 @@ def main():
                 select_mode=sg.TABLE_SELECT_MODE_BROWSE,
             )
         ],
-        [sg.Button("Clear Filters"), sg.Button("Add"), sg.Button("Edit"), sg.Button("Exit")],
+        [
+            sg.Button("Clear Filters"),
+            sg.Button("Add"),
+            sg.Button("Edit"),
+            sg.Button("Exit"),
+        ],
     ]
     window = sg.Window(
         "Book of Books", layout, return_keyboard_events=True, resizable=True
@@ -362,13 +369,7 @@ def main():
             e = table.user_bind_event
             region = table.Widget.identify("region", e.x, e.y)
             if region == "heading":
-                sort_indices = [
-                    "title",
-                    "author",
-                    "series",
-                    "date",
-                    "audiobook",
-                ]  # JHA TODO probably should find a way to only encode this one place
+                sort_indices = Book.getHeadings()
                 column = int(table.Widget.identify_column(e.x)[1:]) - 1
                 books.update_sort(sort_indices[column])
                 update_ui(window, books)
