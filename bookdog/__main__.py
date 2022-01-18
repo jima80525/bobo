@@ -17,27 +17,9 @@ ESC = chr(27)  # 27 is escape char in ascii
 class Book:
     title: str
     author: str
-    series: str
     date: str
+    series: str
     audiobook: bool
-
-    def equalsDict(self, d):
-        return (
-            d["title"] == self.title
-            and d["author"] == self.author
-            and d["date"] == self.date
-            and d["series"] == self.series
-            and d["audiobook"] == self.audiobook
-        )
-
-    def toDict(self):
-        return {
-            "title": self.title,
-            "author": self.author,
-            "date": self.date,
-            "series": self.series,
-            "audiobook": self.audiobook,
-        }
 
     @staticmethod
     def getHeadings():
@@ -48,6 +30,31 @@ class Book:
             "Series",
             "Audiobook",
         ]
+
+    def toList(self):
+        return [self.title, self.author, self.date, self.series, self.audiobook]
+
+
+def decode_book(dct):
+    return Book(
+        dct["title"],
+        dct["author"],
+        dct["series"],
+        dct["date"],
+        dct.get(
+            "audiobook", False
+        ),  # Special conversion for pre-audiobook database files
+    )
+
+
+def encode_book(b):
+    return {
+        "title": b.title,
+        "author": b.author,
+        "date": b.date,
+        "series": b.series,
+        "audiobook": b.audiobook,
+    }
 
 
 class BookList:
@@ -74,17 +81,17 @@ class BookList:
             self.full_authors = sorted(
                 list(
                     {
-                        item["author"]
-                        for item in sorted(self.full_info, key=lambda x: x["author"])
+                        item.author
+                        for item in sorted(self.full_info, key=lambda x: x.author)
                     }
                 )
             )
             self.full_series = sorted(
                 list(
                     {
-                        item["series"]
-                        for item in sorted(self.full_info, key=lambda x: x["series"])
-                        if item["series"]
+                        item.series
+                        for item in sorted(self.full_info, key=lambda x: x.series)
+                        if item.series
                     }
                 )
             )
@@ -92,25 +99,16 @@ class BookList:
             self.series = None
         self.data = []
         for item in sorted(
-            self.full_info, key=lambda x: x[self.sort_key], reverse=self.sort_reverse
+            self.full_info,
+            key=lambda x: getattr(x, self.sort_key),
+            reverse=self.sort_reverse,
         ):
-            if self.hide_audiobooks and item["audiobook"]:
+            if self.hide_audiobooks and item.audiobook:
                 continue
-            author_match = not self.author or item["author"] == self.author
-            series_match = not self.series or item["series"] == self.series
+            author_match = not self.author or item.author == self.author
+            series_match = not self.series or item.series == self.series
             if author_match and series_match:
-                # NOTE: it's tempting to just use items.values here, but that
-                # is dependent on the order that the dict was created. If a
-                # user hand-edits the json, the ordering may get messed up
-                self.data.append(
-                    [
-                        item["title"],
-                        item["author"],
-                        item["date"],
-                        item["series"],
-                        item["audiobook"],
-                    ]
-                )
+                self.data.append(item.toList())
 
     def get_filtered_list(self, opposite_key, key, filter, default):
         if not filter:
@@ -132,24 +130,19 @@ class BookList:
         data = None
         if self.database_file.is_file():
             with open(self.database_file, "r") as fp:
-                data = json.load(fp)
+                data = json.load(fp, object_hook=decode_book)
 
         if not data or len(data) == 0:
             new_book = book_dialog("Add Book", [], [])
             if not new_book:
                 print("No book information present")
                 sys.exit()
-            data = [new_book.toDict()]
-            self.full_info = data
-            self.write_data()
+            data = [new_book]
+            self.write_data(data)
 
-        # Special conversion for pre-audiobook database files
-        for book in data:
-            if "audiobook" not in book:
-                book["audiobook"] = False
         return data
 
-    def write_data(self):
+    def write_data(self, data=None):
         if self.database_file.is_file():
             backup_dir = pathlib.Path("BACKUP")
             backup_dir.mkdir(exist_ok=True)
@@ -157,26 +150,28 @@ class BookList:
             backup_file = backup_dir / backup_name
             shutil.copy(self.database_file, backup_file)
 
+        if data is None:
+            data = self.full_info
         with open(self.database_file, "w") as fp:
-            json.dump(self.full_info, fp, indent=2)
+            json.dump(data, fp, indent=2, default=encode_book)
 
     def add_book(self, new_book):
         if new_book.title and new_book.author:
-            self.full_info.append(new_book.toDict())
+            self.full_info.append(new_book)
             self.write_data()
             self.update_data(True)
 
     def edit_book(self, old_book, new_book):
         for index, item in enumerate(self.full_info):
-            if old_book.equalsDict(item):
-                self.full_info[index] = new_book.toDict()
+            if old_book == item:
+                self.full_info[index] = new_book
                 self.write_data()
                 self.update_data(True)
                 return
 
     def delete_book(self, book):
         for index, item in enumerate(self.full_info):
-            if book.equalsDict(item):
+            if book == item:
                 del self.full_info[index]
                 self.write_data()
                 self.update_data(True)
@@ -225,7 +220,6 @@ def filter_dialog(title, items):
     filter = window["-FILTER-"]
     while True:
         event, values = window.read()
-        # print(event, event.isalpha())
         if event in [sg.WIN_CLOSED, "Cancel", ESC]:
             window.close()
             return ""
