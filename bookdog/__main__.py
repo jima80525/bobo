@@ -39,8 +39,8 @@ def decode_book(dct):
     return Book(
         dct["title"],
         dct["author"],
-        dct["series"],
         dct["date"],
+        dct["series"],
         dct.get(
             "audiobook", False
         ),  # Special conversion for pre-audiobook database files
@@ -288,7 +288,7 @@ def book_dialog(dialog_title, authors, series, book=None):
                     cal = ""
                 series = values["-SER-"]
                 window.close()
-                return Book(title, author, series, cal, audio)
+                return Book(title, author, cal, series, audio)
             window.close()
             return None
 
