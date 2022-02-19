@@ -110,21 +110,22 @@ class BookList:
             if author_match and series_match:
                 self.data.append(item.toList())
 
-    def get_filtered_list(self, opposite_key, key, filter, default):
-        if not filter:
-            return default
-        # need set comprehension here to eliminate dups
-        return list(
-            {item[opposite_key] for item in self.full_info if item[key] == filter}
-        )
 
     def get_filtered_authors(self):
-        return self.get_filtered_list(
-            "author", "series", self.series, self.full_authors
+        if not self.series:
+            return self.full_authors
+        # need set comprehension here to eliminate dups
+        return list(
+            {item.author for item in self.full_info if item.series == self.series}
         )
 
     def get_filtered_series(self):
-        return self.get_filtered_list("series", "author", self.author, self.full_series)
+        if not self.author:
+            return self.full_series
+        # need set comprehension here to eliminate dups
+        return list(
+            {item.series for item in self.full_info if item.author == self.author}
+        )
 
     def read_data(self):
         data = None
