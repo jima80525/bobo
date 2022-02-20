@@ -56,11 +56,18 @@ def encode_book(b):
         "audiobook": b.audiobook,
     }
 
+def find_config_file():
+    # look for json file in currenct dir first
+    filename = "book.json"
+    database_file = pathlib.Path(filename)
+    if database_file.exists():
+        return database_file
+    return pathlib.Path.home() / filename
 
 class BookList:
-    database_file = pathlib.Path("book.json")
 
-    def __init__(self):
+    def __init__(self, db_file):
+        self.database_file = db_file
         self.sort_key = "date"
         self.sort_reverse = True
         self.full_info = self.read_data()
@@ -145,7 +152,7 @@ class BookList:
 
     def write_data(self, data=None):
         if self.database_file.is_file():
-            backup_dir = pathlib.Path("BACKUP")
+            backup_dir = self.database_file.parent / ".bookdogBACKUP"
             backup_dir.mkdir(exist_ok=True)
             backup_name = time.strftime("%Y_%m_%d_%H_%M_%S_") + str(self.database_file)
             backup_file = backup_dir / backup_name
@@ -305,7 +312,8 @@ def update_ui(window, books):
 
 
 def main():
-    books = BookList()
+    db_file = find_config_file()
+    books = BookList(db_file)
 
     layout = [
         [
