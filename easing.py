@@ -27,20 +27,20 @@ class EasingApp(App):
         self.placeholder.style = "white on dark_blue"
 
         tree = TreeControl("Easing", {})
-        for easing_key in sorted(authors):
+        # for easing_key in sorted(authors):
             # ttt = TreeNode(tree.root, tree.id, tree._tree, tree, easing_key, {"mykey": "myval"})
-            #      self.root: TreeNode[NodeDataType] = TreeNode(
-            #None, self.id, self, self._tree, label, data
-            #            parent: TreeNode[NodeDataType] | None,
-            #node_id: NodeID,
-            #control: TreeControl,
-            #tree: Tree,
-            #label: TextType,
-            #data: NodeDataType,
-            #)
-            await tree.add(tree.root.id, easing_key, {"easing":
-                                                      easing_key.upper()})
-            await tree.add(ttt)
+                #  self.root: TreeNode[NodeDataType] = TreeNode(
+            # None, self.id, self, self._tree, label, data
+                    #    parent: TreeNode[NodeDataType] | None,
+            # node_id: NodeID,
+            # control: TreeControl,
+            # tree: Tree,
+            # label: TextType,
+            # data: NodeDataType,
+            # )
+            # await tree.add(tree.root.id, easing_key, {"easing":
+                                                    #   easing_key.upper()})
+            # await tree.add(ttt)
         await tree.root.expand()
 
         await self.view.dock(ScrollView(tree), edge="left", size=32)
