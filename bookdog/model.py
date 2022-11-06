@@ -27,8 +27,8 @@ class ImportSqlTableModel(QSqlTableModel):
         if index.isValid():
             if index.column() not in self.booleanSet:
                 return QSqlTableModel.setData(self, index, value, role)
-            if role == Qt.CheckStateRole:
-                val = 2 if value == Qt.Unchecked else 0
+            if role in (Qt.CheckStateRole, Qt.EditRole):
+                val = 0 if value else 2
                 return QSqlTableModel.setData(self, index, val, Qt.EditRole)
         return False
 
@@ -54,7 +54,6 @@ class BooksModel:
         rows = self.model.rowCount()
         self.model.insertRows(rows, 1)
         for column, field in enumerate(data):
-            print(rows, column, field)
             self.model.setData(self.model.index(rows, column + 1), field)
         self.model.submitAll()
         self.model.select()
