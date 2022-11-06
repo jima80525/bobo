@@ -1,3 +1,5 @@
-from .__main__ import main
+# -*- coding: utf-8 -*-
 
-__version__ = "0.3.0"
+"""This module provides the bookdog package."""
+
+__version__ = "0.1.0"
