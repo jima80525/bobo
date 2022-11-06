@@ -2,11 +2,11 @@
 
 """This module provides views to manage the books table."""
 
-from PyQt5.QtCore import Qt, pyqtSlot
-from PyQt5.QtGui import QKeySequence
+from PyQt5.QtCore import Qt, pyqtSlot, QDate
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
+    QDateEdit,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
@@ -15,7 +15,6 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
-    QShortcut,
     QTableView,
     QVBoxLayout,
     QWidget,
@@ -106,7 +105,8 @@ class AddDialog(QDialog):
         self.authorField.setObjectName("Author")
         self.seriesField = QLineEdit()
         self.seriesField.setObjectName("Series")
-        self.dateField = QLineEdit()
+        self.dateField = QDateEdit(calendarPopup=True)
+        self.dateField.setDate(QDate.currentDate())
         self.dateField.setObjectName("Date")
         self.audioField = QCheckBox()
         self.audioField.setObjectName("Audio")
