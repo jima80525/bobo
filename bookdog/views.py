@@ -6,6 +6,7 @@ from PyQt5.QtCore import Qt, pyqtSlot, QDate
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
+    QComboBox,
     QDateEdit,
     QDialog,
     QDialogButtonBox,
@@ -15,11 +16,40 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QStyledItemDelegate,
     QTableView,
     QVBoxLayout,
     QWidget,
 )
 from .model import BooksModel
+
+class TestDelegate(QStyledItemDelegate):
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+        print("in delegate cstor", model)
+
+    def createEditor(self, parent, option, index):
+        print("in create Editor", index.row(), index.column())
+        print("in create Editor", self.model.model.record(index.row()).value(index.column()))
+        print("in create Editor", self.model.model.record(index.row()).value(index.column()+1))
+        print("in create Editor", self.model.model.record(index.row()).value(index.column()+2))
+        box = QComboBox(parent)
+        geek_list = ["Sayian", "Super Saiyan", "Super Sayian 2", "Super Sayian B"]
+        box.setFrame(False)
+        box.addItems(geek_list)
+        return box
+    def setEditorData(self, editor, index):
+        print("In set editor data")
+        return super().setEditorData(editor, index)
+    def setModelData(self, editor, model, index):
+        print("In set model data")
+        return super().setModelData(editor, model, index)
+    def updateEditorGeometry(self, editor, option, index):
+        print("in update geometry")
+        return super().updateEditorGeometry(editor, option, index)
+
+
 
 class Window(QMainWindow):
     """Main Window."""
@@ -34,6 +64,7 @@ class Window(QMainWindow):
         self.centralWidget.setLayout(self.layout)
         self.booksModel = BooksModel()
         self.setupUI()
+        print("JIMA IN Window", self)
 
     def setupUI(self):
         """Setup the main window's GUI."""
@@ -44,6 +75,7 @@ class Window(QMainWindow):
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.resizeColumnsToContents()
         self.table.setColumnHidden(0, True)
+        self.table.setItemDelegateForColumn(1, TestDelegate(self.booksModel))
         # Create buttons
         self.addButton = QPushButton("Add...")
         self.addButton.clicked.connect(self.openAddDialog)
@@ -129,6 +161,7 @@ class AddDialog(QDialog):
     def accept(self):
         """Accept the data provided through the dialog."""
         self.data = []
+        print("in accept")
         for field in (self.titleField, self.authorField):
             if not field.text():
                 QMessageBox.critical(
