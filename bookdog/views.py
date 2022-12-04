@@ -27,27 +27,22 @@ class TestDelegate(QStyledItemDelegate):
     def __init__(self, model):
         super().__init__()
         self.model = model
-        print("in delegate cstor", model)
 
     def createEditor(self, parent, option, index):
-        print("in create Editor", index.row(), index.column())
-        print("in create Editor", self.model.model.record(index.row()).value(index.column()))
-        print("in create Editor", self.model.model.record(index.row()).value(index.column()+1))
-        print("in create Editor", self.model.model.record(index.row()).value(index.column()+2))
+        series = [""]
+        series.extend(sorted(self.model.model.series))
         box = QComboBox(parent)
-        geek_list = ["Sayian", "Super Saiyan", "Super Sayian 2", "Super Sayian B"]
+        edit = QLineEdit(parent)
+        box.setLineEdit(edit)
         box.setFrame(False)
-        box.addItems(geek_list)
+        box.addItems(series)
         return box
-    def setEditorData(self, editor, index):
-        print("In set editor data")
-        return super().setEditorData(editor, index)
-    def setModelData(self, editor, model, index):
-        print("In set model data")
-        return super().setModelData(editor, model, index)
-    def updateEditorGeometry(self, editor, option, index):
-        print("in update geometry")
-        return super().updateEditorGeometry(editor, option, index)
+    # def setEditorData(self, editor, index):
+        # return super().setEditorData(editor, index)
+    # def setModelData(self, editor, model, index):
+        # return super().setModelData(editor, model, index)
+    # def updateEditorGeometry(self, editor, option, index):
+        # return super().updateEditorGeometry(editor, option, index)
 
 
 
@@ -64,7 +59,6 @@ class Window(QMainWindow):
         self.centralWidget.setLayout(self.layout)
         self.booksModel = BooksModel()
         self.setupUI()
-        print("JIMA IN Window", self)
 
     def setupUI(self):
         """Setup the main window's GUI."""
@@ -75,7 +69,7 @@ class Window(QMainWindow):
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.resizeColumnsToContents()
         self.table.setColumnHidden(0, True)
-        self.table.setItemDelegateForColumn(1, TestDelegate(self.booksModel))
+        self.table.setItemDelegateForColumn(3, TestDelegate(self.booksModel))
         # Create buttons
         self.addButton = QPushButton("Add...")
         self.addButton.clicked.connect(self.openAddDialog)
@@ -90,9 +84,12 @@ class Window(QMainWindow):
         self.layout.addWidget(self.table)
         self.layout.addLayout(layout)
 
+
+    # JHA not sure what this
     @pyqtSlot()
     def on_add(self):
-        print("in slot")
+        pass
+        # print("in slot")
 
     def openAddDialog(self):
         """Open the Add Book dialog."""
@@ -161,7 +158,6 @@ class AddDialog(QDialog):
     def accept(self):
         """Accept the data provided through the dialog."""
         self.data = []
-        print("in accept")
         for field in (self.titleField, self.authorField):
             if not field.text():
                 QMessageBox.critical(
@@ -178,5 +174,4 @@ class AddDialog(QDialog):
         self.data.append(self.audioField.isChecked())
         if not self.data:
             return
-        print(self.data)
         super().accept()

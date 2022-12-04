@@ -4,18 +4,29 @@
 """This module provides a model to manage the books table."""
 
 from PyQt5.QtCore import Qt, QVariant
-from PyQt5.QtSql import QSqlTableModel
+from PyQt5.QtSql import QSqlTableModel, QSqlQuery
 
 class ImportSqlTableModel(QSqlTableModel):
     def __init__(self, *args, **kwargs):
-        super(ImportSqlTableModel, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.booleanSet = [5]  # column with checkboxes
         self.setTable("books")
         self.setEditStrategy(QSqlTableModel.OnFieldChange)
         self.select()
+        self.series = self.populateSeries()
+
+    def populateSeries(self):
+        s = set()
+        query = QSqlQuery()
+        query.exec("select series from books")
+        while query.next():
+            value = query.value(0)
+            if len(value):
+                s.add(value)
+        return s
 
     def data(self, index, role=Qt.DisplayRole):
-        value = super(ImportSqlTableModel, self).data(index)
+        value = super().data(index)
         if index.column() in self.booleanSet:
             if role == Qt.CheckStateRole:
                 return Qt.Unchecked if value == 2 else Qt.Checked
@@ -24,6 +35,8 @@ class ImportSqlTableModel(QSqlTableModel):
         return QSqlTableModel.data(self, index, role)
 
     def setData(self, index, value, role=Qt.EditRole):
+        if index.column() == 3:  # JHA TODO fix the magic number
+            self.series.add(value)
         if index.isValid():
             if index.column() not in self.booleanSet:
                 return QSqlTableModel.setData(self, index, value, role)
