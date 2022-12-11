@@ -2,6 +2,8 @@
 .bookdogBACKUP
 book.json
 .vscode/
+*.json
+*.sqlite
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
