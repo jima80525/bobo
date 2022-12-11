@@ -7,5 +7,3 @@ Simple book database tracker.  Currently being rewritten to use QT
 * convert json format to db
 * edit date in table?
 * do I want menus instead of button? in addition to?
-* backup db before write (or on startup?)
-*

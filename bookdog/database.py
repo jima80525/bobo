@@ -25,7 +25,7 @@ def _createBooksTable():
 def createConnection(databaseName):
     """Create and open a database connection."""
     connection = QSqlDatabase.addDatabase("QSQLITE")
-    connection.setDatabaseName(databaseName)
+    connection.setDatabaseName(str(databaseName))
 
     if not connection.open():
         QMessageBox.warning(
