@@ -34,17 +34,13 @@ def clean(c, bytecode=False, test=False, extra=""):
     """Remove any built objects.  -b removes bytecode, -t testfiles -e extra"""
     patterns = ["build/", "dist/", "bookdog.egg-info/"]
     if bytecode:
-        patterns.append("__pycache__/")
-        patterns.append("bookdog/__pycache__/")
-        patterns.append("tests/__pycache__/")
+        patterns.extend(("__pycache__/", "bookdog/__pycache__/", "tests/__pycache__/"))
     if test:
-        patterns.append(".coverage")
-        patterns.append(".pytest_cache/")
-        patterns.append(".tox/")
+        patterns.extend((".coverage", ".pytest_cache/", ".tox/"))
     if extra:
         patterns.append(extra)
     for pattern in patterns:
-        c.run("rm -rf {}".format(pattern))
+        c.run(f"rm -rf {pattern}")
 
 
 def status(s):
