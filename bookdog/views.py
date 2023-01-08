@@ -76,6 +76,7 @@ class Window(QMainWindow):
         self.addButton.setShortcut("Ctrl+A")
         self.deleteButton = QPushButton("Delete")
         self.deleteButton.clicked.connect(self.deleteBook)
+        self.deleteButton.setShortcut("Ctrl+D")
         # Lay out the GUI
         layout = QVBoxLayout()
         layout.addWidget(self.addButton)
