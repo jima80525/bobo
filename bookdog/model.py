@@ -6,6 +6,7 @@
 from PyQt5.QtCore import Qt, QVariant
 from PyQt5.QtSql import QSqlTableModel, QSqlQuery
 
+
 class ImportSqlTableModel(QSqlTableModel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

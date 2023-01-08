@@ -6,6 +6,7 @@
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtSql import QSqlDatabase, QSqlQuery
 
+
 def _createBooksTable():
     """Create the books table in the database."""
     createTableQuery = QSqlQuery()
@@ -21,6 +22,7 @@ def _createBooksTable():
         )
         """
     )
+
 
 def createConnection(databaseName):
     """Create and open a database connection."""

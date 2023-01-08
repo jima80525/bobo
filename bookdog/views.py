@@ -23,6 +23,7 @@ from PyQt5.QtWidgets import (
 )
 from .model import BooksModel
 
+
 class TestDelegate(QStyledItemDelegate):
     def __init__(self, model):
         super().__init__()
@@ -37,22 +38,25 @@ class TestDelegate(QStyledItemDelegate):
         box.setFrame(False)
         box.addItems(series)
         return box
-    # def setEditorData(self, editor, index):
-        # return super().setEditorData(editor, index)
-    # def setModelData(self, editor, model, index):
-        # return super().setModelData(editor, model, index)
-    # def updateEditorGeometry(self, editor, option, index):
-        # return super().updateEditorGeometry(editor, option, index)
 
+    # def setEditorData(self, editor, index):
+    # return super().setEditorData(editor, index)
+    # def setModelData(self, editor, model, index):
+    # return super().setModelData(editor, model, index)
+    # def updateEditorGeometry(self, editor, option, index):
+    # return super().updateEditorGeometry(editor, option, index)
 
 
 class Window(QMainWindow):
     """Main Window."""
+
     def __init__(self, parent=None):
         """Initializer."""
         super().__init__(parent)
         self.setWindowTitle("Bookdog")
-        self.resize(1550, 1250)  # jha todo - this is bigger than my screen - figure out what to do there
+        self.resize(
+            1550, 1250
+        )  # jha todo - this is bigger than my screen - figure out what to do there
         self.centralWidget = QWidget()
         self.setCentralWidget(self.centralWidget)
         self.layout = QHBoxLayout()
@@ -85,7 +89,6 @@ class Window(QMainWindow):
         self.layout.addWidget(self.table)
         self.layout.addLayout(layout)
 
-
     # JHA not sure what this
     @pyqtSlot()
     def on_add(self):
@@ -116,6 +119,7 @@ class Window(QMainWindow):
 
 class AddDialog(QDialog):
     """Add Book dialog."""
+
     def __init__(self, parent=None):
         """Initializer."""
         super().__init__(parent=parent)
@@ -152,7 +156,9 @@ class AddDialog(QDialog):
         # Add standard buttons to the dialog and connect them
         self.buttonsBox = QDialogButtonBox(self)
         self.buttonsBox.setOrientation(Qt.Horizontal)
-        self.buttonsBox.setStandardButtons(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.buttonsBox.setStandardButtons(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+        )
         self.buttonsBox.accepted.connect(self.accept)
         self.buttonsBox.rejected.connect(self.reject)
         self.layout.addWidget(self.buttonsBox)
