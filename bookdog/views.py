@@ -135,6 +135,7 @@ class AddDialog(QDialog):
         self.seriesField = QLineEdit()
         self.seriesField.setObjectName("Series")
         self.dateField = QDateEdit(calendarPopup=True)
+        self.dateField.setDisplayFormat("yyyy/MM/dd")
         self.dateField.setDate(QDate.currentDate())
         self.dateField.setObjectName("Date")
         self.audioField = QCheckBox()
