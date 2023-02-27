@@ -1,34 +1,31 @@
-# pyproject.toml
-
 [build-system]
-requires = ["setuptools>=61.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
 
 [project]
 name = "bookdog"
-version = "1.0.0"
-description = "Keep a database of books you read"
+authors = [{name = "Jim Anderson", email = "jima.coding@gmail.com"}]
 readme = "README.md"
-authors = [{ name = "Jim Anderson", email = "jima80525@gmail.com" }]
-license = { file = "LICENSE" }
+license = {file = "LICENSE"}
 classifiers = [
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License"
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.8",
 ]
-keywords = ["books", "database"]
 dependencies = [
-    'PyQt5 >= 5.15.7',
-    'PyQt5-Qt5 >= 5.15.2',
-    'PyQt5-sip >= 12.11.0',
+   "PyQt5==5.15.7",
+   "PyQt5-Qt5==5.15.2",
+   "PyQt5-sip==12.11.0",
 ]
-requires-python = ">=3.8"
+dynamic = ["version", "description"]
 
 [project.optional-dependencies]
 dev = ["black", 'bump2version >= 1.0.1', 'bumpversion >= 0.6.0', 'invoke >= 1.7.3']
 
 [project.urls]
-Homepage = "https://github.com/jima80525/bookdog"
+Home = "https://github.com/jima80525/bookdog"
 
 [project.scripts]
 bookdog = "bookdog.main:main"
+
